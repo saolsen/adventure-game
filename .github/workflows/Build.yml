@@ -1,0 +1,16 @@
+name: Build
+on: [push]
+jobs:
+  osx:
+    name: osx
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: ./osx_build.sh
+      - uses: actions/upload-artifact@master
+        if: always()
+        with:
+          name: game-osx
+          path: build
+
