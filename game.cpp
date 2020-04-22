@@ -2,9 +2,7 @@
 // Port sweep_aabb to the inline spot I set up.
 
 // Start iterating on some real gameplay.
-// Move steve.h stuff into this file too. (literate programming?????)
-
-// Don't set up itch.io yet you fucker. Get further in the game first.
+// Move steve.h stuff into this file too.
 
 // @NOTE: This is c++20+ only
 // Because I use designated initializers (c99) AND operator overloading (c++).
@@ -119,8 +117,8 @@ inline char map_i(size_t x, size_t y, size_t z) {
 // Platform layer types
 struct DigitalButton {
     bool down;
-    bool pressed;
-    bool released;
+    //bool pressed;
+    //bool released;
 };
 
 struct Input {
@@ -176,11 +174,80 @@ size_t player = 0;
 void game_setup() {
     arrpush(entities, (Entity){
             .kind = PLAYER,
+            .pos = v3(1.0, 1.0, 0.0),
     });
     arrpush(entities, (Entity){
             .kind = BADGUY,
             .pos = v3(5.0, 5.0, 0.0),
     });
+}
+
+// @OPTIMIZE: This is like the inner loop, it probably has to happen on a bunch of shit at once.
+SweepResult sweep_aabb(Aabb a, Aabb b, f2 ray, float dt) {
+    bool hit = false;
+    float hit_time = HUGE_VAL;
+    f2 hit_normal = f2_zero;
+    f2 minkowski_extent = a.extent + b.extent;
+    f2 min = b.center - minkowski_extent;
+    f2 max = b.center + minkowski_extent;
+    f2 o = a.center;
+    // tile top
+    if (ray.y < 0.0) {
+        float hit_t = (max.y - o.y) / ray.y;
+        if (hit_t > 0.0 && hit_t < dt) {
+            float x = o.x + ray.x * hit_t;
+            if (x >= min.x && x <= max.x) {
+                if (hit_t < hit_time) {
+                    hit = true;
+                    hit_time = hit_t;
+                    hit_normal = f2_y;
+                }
+            }
+        }
+    }
+    // tile bottom
+    if (ray.y > 0.0) {
+        float hit_t = (min.y - o.y) / ray.y;
+        if (hit_t > 0.0 && hit_t < dt) {
+            float x = o.x + ray.x * hit_t;
+            if (x >= min.x && x <= max.x) {
+                if (hit_t < hit_time) {
+                    hit = true;
+                    hit_time = hit_t;
+                    hit_normal = -f2_y;
+                }
+            }
+        }
+    }
+    // tile left
+    if (ray.x > 0.0) {
+        float hit_t = (min.x - o.x) / ray.x;
+        if (hit_t > 0.0 && hit_t < dt) {
+            float y = o.y + ray.y * hit_t;
+            if (y >= min.y && y <= max.y) {
+                if (hit_t < hit_time) {
+                    hit = true;
+                    hit_time = hit_t;
+                    hit_normal = -f2_x;
+                }
+            }
+        }
+    }
+    // tile right
+    if (ray.x < 0.0) {
+        float hit_t = (max.x - o.x) / ray.x;
+        if (hit_t > 0.0 && hit_t < dt) {
+            float y = o.y + ray.y * hit_t;
+            if (y >= min.y && y <= max.y) {
+                if (hit_t < hit_time) {
+                    hit = true;
+                    hit_time = hit_t;
+                    hit_normal = f2_x;
+                }
+            }
+        }
+    }
+    return (SweepResult){.hit = hit, .hit_time = hit_time, .hit_normal = hit_normal};
 }
 
 void sim_tick() {
@@ -236,7 +303,6 @@ void sim_tick() {
             float min_hit_t = HUGE_VAL;
             f2 hit_plane = f2_zero;
 
-            // TODO: Iterate over tiles to see if we hit them.
             size_t tile_z = entity.pos.z + 1;
             for (int y=0; y<TILE_MAP_DEPTH; y++) {
                 for (int x=0; x<TILE_MAP_WIDTH; x++) {
@@ -246,14 +312,7 @@ void sim_tick() {
                             .center = v2((float)x, (float)y),
                             .extent = v2(0.5, 0.5),
                     };
-
-                    // Inline fn sweep_aabb
-                    SweepResult result;
-                    f2 *sweep_ray = &ray;
-                    {
-                        result = {};
-
-                    }
+                    SweepResult result = sweep_aabb(entity_geometry, tile_geometry, ray, dt_rem);
                     if (result.hit && result.hit_time < min_hit_t) {
                         min_hit_t = result.hit_time;
                         hit_plane = result.hit_normal;
@@ -266,10 +325,6 @@ void sim_tick() {
             if (min_hit_t < HUGE_VAL) {
                 entity.pos += v3(ray) * (float)(min_hit_t - 0.0001);
                 dt_rem -= min_hit_t;
-            } else {
-                entity.pos += v3(ray) * dt_rem;
-                dt_rem -= dt_rem;
-                assert(dt_rem <= 0.0);
 
                 if (hit_plane.x != 0.0) {
                     entity.dp.x = 0.0;
@@ -279,13 +334,17 @@ void sim_tick() {
                     entity.dp.y = 0.0;
                     entity.ddp.y = 0.0;
                 }
+            } else {
+                entity.pos += v3(ray) * dt_rem;
+                dt_rem -= dt_rem;
+                assert(dt_rem <= 0.0);
+            }
 
-                new_pos = 0.5 * entity.ddp * (dt_rem * dt_rem) + entity.dp * dt_rem + entity.pos;
-                ray = v2(new_pos - entity.pos);
-                if (mag2(ray) > 0.0) {
-                    float m = mag(ray) / SIM_DT;
-                    ray = normalize(ray) * m;
-                }
+            new_pos = 0.5 * entity.ddp * (dt_rem * dt_rem) + entity.dp * dt_rem + entity.pos;
+            ray = v2(new_pos - entity.pos);
+            if (mag2(ray) > 0.0) {
+                float m = mag(ray) / SIM_DT;
+                ray = normalize(ray) * m;
             }
 
             f3 moved_to = entity.pos;
@@ -362,7 +421,7 @@ void game_update_and_render() {
                     default: {
                         color = COLOR_DEBUG_PINK;
                     } break;
-                };
+                }
 
                 arrpush(render_cubes, (RenderCube){
                         .center = v3((float)x, (float)y, (float)z-0.5),
@@ -466,7 +525,7 @@ void raylib_draw() {
             default: {
                 color = PINK;
             } break;
-        };
+        }
         DrawCubeV(pos, size, color);
         DrawCubeWiresV(pos, wire_size, BLACK);
     }
