@@ -1,3 +1,6 @@
+// Ok it took like 3 days or whatever but we're ported back to c++ so fuck you add some more gameplay stuff.
+// Like a TON of new gameplay stuff and play around with things!
+
 // TODO List
 // Port sweep_aabb to the inline spot I set up.
 
@@ -61,7 +64,7 @@ const char TILE_MAP[TILE_MAP_HEIGHT][TILE_MAP_DEPTH * TILE_MAP_WIDTH] = {
                 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W', 'W', 'W', ' ', ' ', ' ', ' ', 'W',
                 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
                 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
+                'W', ' ', ' ', 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
                 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
                 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
                 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
@@ -144,44 +147,6 @@ struct Aabb {
     f2 extent;
 };
 
-enum EntityKind {
-    PLAYER,
-    BADGUY,
-};
-
-struct Entity {
-    EntityKind kind;
-    f3 pos;
-    f3 dp;
-    f3 ddp;
-
-    f3 target;
-};
-
-// Simulation constants
-const float SIM_DT = 1.0 / 60.0;
-const float PLAYER_MAX_SPEED = 30.0;
-const float PLAYER_ACCELERATION = 20.0;
-const float BADGUY_MAX_SPEED = 25.0;
-const float BADGUY_ACCELERATION = 15.0;
-const float FRICTION = 4.0;
-
-// Simulation state
-double sim_time = 0.0;
-Entity *entities = NULL;
-size_t player = 0;
-
-void game_setup() {
-    arrpush(entities, (Entity){
-            .kind = PLAYER,
-            .pos = v3(1.0, 1.0, 0.0),
-    });
-    arrpush(entities, (Entity){
-            .kind = BADGUY,
-            .pos = v3(5.0, 5.0, 0.0),
-    });
-}
-
 // @OPTIMIZE: This is like the inner loop, it probably has to happen on a bunch of shit at once.
 SweepResult sweep_aabb(Aabb a, Aabb b, f2 ray, float dt) {
     bool hit = false;
@@ -250,7 +215,68 @@ SweepResult sweep_aabb(Aabb a, Aabb b, f2 ray, float dt) {
     return (SweepResult){.hit = hit, .hit_time = hit_time, .hit_normal = hit_normal};
 }
 
+enum EntityKind {
+    PLAYER,
+    BADGUY,
+};
+
+struct Entity {
+    EntityKind kind;
+    f3 pos;
+    f3 dp;
+    f3 ddp;
+
+    f3 target;
+};
+
+enum CollisionKind {
+    COLLIDE_ENTITY,
+    COLLIDE_TILE,
+};
+
+struct Collision {
+    CollisionKind kind;
+    size_t entity;
+    union {
+        size_t hit_entity;
+        f3 hit_tile;
+    };
+    f2 hit_plane; // @TODO: Something better than this.
+};
+
+// Simulation constants
+const float SIM_DT = 1.0 / 60.0;
+const float PLAYER_MAX_SPEED = 30.0;
+const float PLAYER_ACCELERATION = 20.0;
+const float BADGUY_MAX_SPEED = 25.0;
+const float BADGUY_ACCELERATION = 15.0;
+const float FRICTION = 4.0;
+
+// Simulation state
+double sim_time = 0.0;
+Entity *entities = NULL;
+size_t player = 0;
+int health = 5;
+bool dead = false;
+
+void game_setup() {
+    arrpush(entities, (Entity){
+            .kind = PLAYER,
+            .pos = v3(3.0, 3.0, 0.0),
+    });
+    arrpush(entities, (Entity){
+            .kind = BADGUY,
+            .pos = v3(3.0, 6.0, 0.0),
+    });
+    health = 10;
+}
+
+// Frame simulation state
+Collision *collisions = NULL;
+
 void sim_tick() {
+    arrclear(collisions);
+
     f3 player_accel = {};
     if (input.w.down) { player_accel += f3_y; }
     if (input.a.down) { player_accel -= f3_x; }
@@ -259,8 +285,8 @@ void sim_tick() {
 
     player_accel = normalize(player_accel);
 
-    for (int i=0; i<arrlen(entities); i++) {
-        Entity entity = entities[i];
+    for (int entity_i=0; entity_i < arrlen(entities); entity_i++) {
+        Entity entity = entities[entity_i];
         float max_speed = 0.0;
         switch(entity.kind) {
             case PLAYER: {
@@ -302,6 +328,7 @@ void sim_tick() {
         while (dt_rem > 0.0) {
             float min_hit_t = HUGE_VAL;
             f2 hit_plane = f2_zero;
+            Collision collision = {};
 
             size_t tile_z = entity.pos.z + 1;
             for (int y=0; y<TILE_MAP_DEPTH; y++) {
@@ -316,7 +343,34 @@ void sim_tick() {
                     if (result.hit && result.hit_time < min_hit_t) {
                         min_hit_t = result.hit_time;
                         hit_plane = result.hit_normal;
+                        collision = {
+                                .entity = (size_t)entity_i,
+                                .kind = COLLIDE_TILE,
+                                .hit_tile = v3((float)x,(float)y,(float)tile_z), // @TODO: Maybe make a u3 vector for this.
+                                .hit_plane = hit_plane,
+                        };
                     }
+                }
+            }
+
+            // Check collisions with other entities.
+            for (int other_i=0; other_i<arrlen(entities); other_i++) {
+                if (other_i == entity_i) { continue; }
+                Entity other = entities[other_i];
+                Aabb other_geometry = (Aabb){
+                        .center = v2(other.pos),
+                        .extent = v2(0.25, 0.25),
+                };
+                SweepResult result = sweep_aabb(entity_geometry, other_geometry, ray, dt_rem);
+                if (result.hit && result.hit_time < min_hit_t) {
+                    min_hit_t = result.hit_time;
+                    hit_plane = result.hit_normal;
+                    collision = {
+                            .entity = (size_t)entity_i,
+                            .kind = COLLIDE_ENTITY,
+                            .hit_entity = (size_t)other_i,
+                            .hit_plane = hit_plane,
+                    };
                 }
             }
 
@@ -334,6 +388,8 @@ void sim_tick() {
                     entity.dp.y = 0.0;
                     entity.ddp.y = 0.0;
                 }
+
+                arrpush(collisions, collision);
             } else {
                 entity.pos += v3(ray) * dt_rem;
                 dt_rem -= dt_rem;
@@ -354,7 +410,38 @@ void sim_tick() {
         entity.dp = entity.ddp * SIM_DT + entity.dp;
         entity.pos = new_pos;
 
-        entities[i] = entity;
+        entities[entity_i] = entity;
+    }
+
+    for (int i=0; i<arrlen(collisions); i++) {
+        Collision collision = collisions[i];
+        if ((collision.entity == player || collision.hit_entity == player) && collision.kind == COLLIDE_ENTITY) {
+            health -= 1;
+            // @TODO: Have some force system, don't just update positions or you'll get put in walls.
+            float explode = 5.0;
+            if (collision.hit_plane.x != 0.0) {
+                if (entities[collision.entity].pos.x < entities[collision.hit_entity].pos.x) {
+                    entities[collision.entity].dp.x -= explode;
+                    entities[collision.hit_entity].dp.x += explode;
+                } else {
+                    entities[collision.entity].dp.x += explode;
+                    entities[collision.hit_entity].dp.x -= explode;
+                }
+            }
+            if (collision.hit_plane.y != 0.0) {
+                if (entities[collision.entity].pos.y < entities[collision.hit_entity].pos.y) {
+                    entities[collision.entity].dp.y -= explode;
+                    entities[collision.hit_entity].dp.y += explode;
+                } else {
+                    entities[collision.entity].dp.y += explode;
+                    entities[collision.hit_entity].dp.y -= explode;
+                }
+            }
+        }
+    }
+
+    if (health <= 0) {
+        dead = true;
     }
 
     sim_time += SIM_DT;
@@ -391,15 +478,17 @@ double last_update_time = 0.0;
 double dt_remaining = 0.0;
 
 void game_update_and_render() {
-    // Update with fixed timestep simulation.
-    double dt = dt_remaining + MIN(1.0, t - last_update_time);
-    while (dt > SIM_DT) {
-        dt -= SIM_DT;
-        sim_tick();
-        frame_ticks++;
+    if (!dead) {
+        // Update with fixed timestep simulation.
+        double dt = dt_remaining + MIN(1.0, t - last_update_time);
+        while (dt > SIM_DT) {
+            dt -= SIM_DT;
+            sim_tick();
+            frame_ticks++;
+        }
+        dt_remaining = dt;
+        last_update_time = t;
     }
-    dt_remaining = dt;
-    last_update_time = t;
 
     // TODO: Only render tiles on camera.
     for (int z=0; z<TILE_MAP_HEIGHT; z++) {
@@ -531,11 +620,17 @@ void raylib_draw() {
     }
     EndMode3D();
 
-    DrawFPS(10, 10);
-    char *txt = NULL;
-    arrprintf(txt, "Ticks this frame: %i", frame_ticks);
-    DrawText(txt, 10, 40, 20, DARKGRAY);
-    arrfree(txt);
+    int x = 10;
+    for (int i=0; i<health; i++) {
+        DrawCircle(x, 10, 5, RED);
+        x+= 12;
+    }
+
+    DrawFPS(10, GetScreenHeight() - 25);
+
+    if (dead) {
+        DrawText("YOU ARE DEAD", GetScreenWidth()/2, GetScreenHeight()/2, 50, RED);
+    }
     EndDrawing();
 }
 
