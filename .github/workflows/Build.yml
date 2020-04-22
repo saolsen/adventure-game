@@ -12,5 +12,4 @@ jobs:
         if: always()
         with:
           name: game-osx
-          path: build
-
+          path: game-osx.zip
