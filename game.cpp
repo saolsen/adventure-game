@@ -207,7 +207,7 @@ void sim_tick() {
                 entity.ddp *= BADGUY_ACCELERATION;
                 max_speed = BADGUY_MAX_SPEED;
             } break;
-        };
+        }
 
         f3 new_dp = entity.ddp * SIM_DT + entity.dp;
         f3 friction = -new_dp * FRICTION;
@@ -395,7 +395,7 @@ void game_update_and_render() {
                         .color = COLOR_RED
                 });
             } break;
-        };
+        }
     }
 }
 
