@@ -9,6 +9,8 @@ jobs:
       - name: Build
         run: ./osx_build.sh
       - name: Publish
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: ./osx_publish.sh
       - uses: actions/upload-artifact@master
         if: always()
