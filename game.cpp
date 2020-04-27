@@ -553,18 +553,21 @@ int screen_width = 1920/2;
 int screen_height = 1080/2;
 
 #include "raylib.h"
+#define RAYGUI_IMPLEMENTATION
+#define RAYGUI_SUPPORT_ICONS
+#include "raygui.h"
 
 Vector3 rl(f3 v) {
     return (Vector3){.x = v.x, .y = v.y, .z = v.z};
 }
 
-void raylib_setup() {
+void platform_setup() {
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_RESIZABLE);
     InitWindow(screen_width, screen_height, "Game");
     SetTextureFilter(GetFontDefault().texture, FILTER_POINT);
 }
 
-void raylib_update() {
+void platform_update() {
     t = GetTime();
     input.w.down = IsKeyDown(KEY_W);
     input.a.down = IsKeyDown(KEY_A);
@@ -574,7 +577,7 @@ void raylib_update() {
     arrclear(render_cubes);
 }
 
-void raylib_draw() {
+void platform_draw() {
     Camera3D raylib_camera = (Camera3D){
             .type = CAMERA_PERSPECTIVE,
             .position = rl(camera.position),
@@ -633,19 +636,20 @@ void raylib_draw() {
         DrawText("YOU ARE DEAD", GetScreenWidth()/2, GetScreenHeight()/2, 50, RED);
     }
 
+    // if (GuiButton(Rectangle{100, 100, 100, 100}, "#05#Fuck You")) { printf("fuck you\n"); }
 
     EndDrawing();
 }
 
 int main() {
     game_setup();
-    raylib_setup();
+    platform_setup();
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
         reset_debug();
-        raylib_update();
+        platform_update();
         game_update_and_render();
-        raylib_draw();
+        platform_draw();
     }
     CloseWindow();
     return 0;
