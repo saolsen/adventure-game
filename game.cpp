@@ -12,6 +12,15 @@
 
 // Lets do a large world and a level editor.
 
+// Ok so the level editing stuff sucks, also using tiled suckes and using an external editor sucks.
+// I'm not sure how I wanna design these worlds.
+// I do wanna do precedural stuff eventuially so maybe I just work on that, do the runtime data structure and fill
+// it in with code from the beginning.
+
+// Guess I want some sort of sparse storage thing to get started with.
+
+// The tilemap does work.
+
 // TODO: Just inline whatever you do use. Easier to share the code.
 #include "steve.h"
 #include "steve.cpp"
@@ -27,6 +36,7 @@ void reset_debug() {
 }
 
 // Map generation
+#if 0
 const size_t TILE_MAP_WIDTH = 18;
 const size_t TILE_MAP_DEPTH = 18;
 const size_t TILE_MAP_HEIGHT = 4;
@@ -83,13 +93,13 @@ const char TILE_MAP[TILE_MAP_HEIGHT][TILE_MAP_DEPTH * TILE_MAP_WIDTH] = {
                 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
                 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
                 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
+                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W', ' ', ' ', ' ', ' ', 'W',
                 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
                 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
+                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W', ' ', ' ', ' ', 'W',
                 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
                 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
+                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W', ' ', ' ', 'W',
                 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
         },
         {
@@ -98,7 +108,7 @@ const char TILE_MAP[TILE_MAP_HEIGHT][TILE_MAP_DEPTH * TILE_MAP_WIDTH] = {
                 ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
                 ' ', ' ', ' ', ' ', 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
                 ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W', ' ', ' ',
                 ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
                 ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
                 ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
@@ -117,6 +127,27 @@ const char TILE_MAP[TILE_MAP_HEIGHT][TILE_MAP_DEPTH * TILE_MAP_WIDTH] = {
 inline char map_i(size_t x, size_t y, size_t z) {
     return TILE_MAP[z][((TILE_MAP_DEPTH - 1 - y) * TILE_MAP_WIDTH) + x];
 }
+#else
+
+// @TODO: I use these constants to iterate through tiles but
+// probably shouldn't, since things will be sparse.
+// This is the kind of shit where edit and continue is clutch!
+const size_t TILE_MAP_WIDTH = 10;
+const size_t TILE_MAP_DEPTH = 10;
+const size_t TILE_MAP_HEIGHT = 2;
+
+inline char map_i(size_t x, size_t y, size_t z) {
+    switch(z) {
+        case 0:
+            return 'x';
+            break;
+        case 1:
+            return ' ';
+            break;
+    }
+}
+
+#endif
 
 // Platform layer types
 struct DigitalButton {
@@ -254,6 +285,8 @@ const float BADGUY_ACCELERATION = 15.0;
 const float FRICTION = 4.0;
 
 // Simulation state
+bool editing = false; // Is this gamestate or is this edit state?
+
 double sim_time = 0.0;
 Entity *entities = NULL;
 size_t player = 0;
@@ -277,6 +310,9 @@ Collision *collisions = NULL;
 
 void sim_tick() {
     arrclear(collisions);
+
+    if (editing || dead) { return; }
+
 
     f3 player_accel = {};
     if (input.w.down) { player_accel += f3_y; }
@@ -479,17 +515,16 @@ double last_update_time = 0.0;
 double dt_remaining = 0.0;
 
 void game_update_and_render() {
-    if (!dead) {
-        // Update with fixed timestep simulation.
-        double dt = dt_remaining + MIN(1.0, t - last_update_time);
-        while (dt > SIM_DT) {
-            dt -= SIM_DT;
-            sim_tick();
-            frame_ticks++;
-        }
-        dt_remaining = dt;
-        last_update_time = t;
+    // Update with fixed timestep simulation.
+    double dt = dt_remaining + MIN(1.0, t - last_update_time);
+    while (dt > SIM_DT) {
+        dt -= SIM_DT;
+        sim_tick();
+        frame_ticks++;
     }
+    dt_remaining = dt;
+    last_update_time = t;
+
 
     // TODO: Only render tiles on camera.
     for (int z=0; z<TILE_MAP_HEIGHT; z++) {
@@ -589,6 +624,11 @@ void platform_draw() {
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
+    Ray ray = {};
+    if (editing) {
+        ray = GetMouseRay(GetMousePosition(), raylib_camera);
+    }
+
     BeginMode3D(raylib_camera);
     for (int i=0; i<arrlen(render_cubes); i++) {
         Vector3 size = rl(render_cubes[i].extent * 2.0);
@@ -620,7 +660,14 @@ void platform_draw() {
             } break;
         }
         DrawCubeV(pos, size, color);
-        DrawCubeWiresV(pos, wire_size, BLACK);
+
+        if (editing && CheckCollisionRayBox(ray,
+                (BoundingBox){(Vector3){ .x=pos.x - size.x/2, .y=pos.y - size.y/2, .z=pos.z - size.z/2 },
+                              (Vector3){ .x=pos.x + size.x/2, .y=pos.y + size.y/2, .z=pos.z + size.z/2 }})) {
+            DrawCubeWiresV(pos, wire_size, PINK);
+        } else {
+            DrawCubeWiresV(pos, wire_size, BLACK);
+        }
     }
     EndMode3D();
 
@@ -636,7 +683,13 @@ void platform_draw() {
         DrawText("YOU ARE DEAD", GetScreenWidth()/2, GetScreenHeight()/2, 50, RED);
     }
 
-    // if (GuiButton(Rectangle{100, 100, 100, 100}, "#05#Fuck You")) { printf("fuck you\n"); }
+    if (IsKeyPressed(KEY_P)) {
+        editing = !editing;
+    }
+
+    if (editing) {
+        if (GuiButton(Rectangle{100, 100, 100, 100}, "#05#Fuck You")) { printf("fuck you\n"); }
+    }
 
     EndDrawing();
 }
