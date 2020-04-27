@@ -1,5 +1,4 @@
-// Ok it took like 3 days or whatever but we're ported back to c++ so fuck you add some more gameplay stuff.
-// Like a TON of new gameplay stuff and play around with things!
+// I think a much larger map would really help a lot.
 
 // TODO List
 // Port sweep_aabb to the inline spot I set up.
@@ -10,6 +9,8 @@
 // @NOTE: This is c++20+ only
 // Because I use designated initializers (c99) AND operator overloading (c++).
 // It's really just c99 + operator overloading but that's only c++20 for some reason.
+
+// Lets do a large world and a level editor.
 
 // TODO: Just inline whatever you do use. Easier to share the code.
 #include "steve.h"
@@ -346,7 +347,8 @@ void sim_tick() {
                         collision = {
                                 .entity = (size_t)entity_i,
                                 .kind = COLLIDE_TILE,
-                                .hit_tile = v3((float)x,(float)y,(float)tile_z), // @TODO: Maybe make a u3 vector for this.
+                                // @TODO: Maybe make a u3 vector for this.
+                                .hit_tile = v3((float)x,(float)y,(float)tile_z),
                                 .hit_plane = hit_plane,
                         };
                     }
@@ -379,7 +381,6 @@ void sim_tick() {
             if (min_hit_t < HUGE_VAL) {
                 entity.pos += v3(ray) * (float)(min_hit_t - 0.0001);
                 dt_rem -= min_hit_t;
-
                 if (hit_plane.x != 0.0) {
                     entity.dp.x = 0.0;
                     entity.ddp.x = 0.0;
@@ -631,6 +632,8 @@ void raylib_draw() {
     if (dead) {
         DrawText("YOU ARE DEAD", GetScreenWidth()/2, GetScreenHeight()/2, 50, RED);
     }
+
+
     EndDrawing();
 }
 
