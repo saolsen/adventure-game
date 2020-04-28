@@ -35,9 +35,15 @@ void reset_debug() {
     frame_ticks = 0;
 }
 
+#include "tilemap.h"
+
+inline char map_i(size_t x, size_t y) {
+    return TILE_MAP[((TILE_MAP_DEPTH - 1 - y) * TILE_MAP_WIDTH) + x];
+}
+
 // Map generation
 #if 0
-const size_t TILE_MAP_WIDTH = 18;
+const size_t TILE_MAP_WIDTH = ;
 const size_t TILE_MAP_DEPTH = 18;
 const size_t TILE_MAP_HEIGHT = 4;
 

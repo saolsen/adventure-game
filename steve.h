@@ -94,6 +94,14 @@ const char *intern_size(char*** table, Arena *arena, const char *start, usize si
 
 uint64_t hash(char *str, usize len);
 
+struct i2 {
+    int x, y;
+};
+
+struct i3 {
+    int x, y, z;
+};
+
 struct f2 {
     float x, y;
 };
