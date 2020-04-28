@@ -133,25 +133,91 @@ const char TILE_MAP[TILE_MAP_HEIGHT][TILE_MAP_DEPTH * TILE_MAP_WIDTH] = {
 inline char map_i(size_t x, size_t y, size_t z) {
     return TILE_MAP[z][((TILE_MAP_DEPTH - 1 - y) * TILE_MAP_WIDTH) + x];
 }
-#else
 
-// @TODO: I use these constants to iterate through tiles but
-// probably shouldn't, since things will be sparse.
-// This is the kind of shit where edit and continue is clutch!
-const size_t TILE_MAP_WIDTH = 10;
-const size_t TILE_MAP_DEPTH = 10;
-const size_t TILE_MAP_HEIGHT = 2;
+// Lets try something like this to start. RoomSegments are rectangles. A room could have more but this is more
+// about the geometry I guess?
 
-inline char map_i(size_t x, size_t y, size_t z) {
-    switch(z) {
-        case 0:
-            return 'x';
-            break;
-        case 1:
-            return ' ';
-            break;
-    }
-}
+// I should probably think more about what I would like to get as the result than what the algorithm should be.
+// I wanna put together a simple zelda scene. A shop you can go in, a village maybe, some terrain and trees or whatever.
+// This might be easier to just do laid out in csv or whatever first.
+//struct RoomSegment {
+//    i3 pos;
+//    i2 size;
+//    char tile;
+//};
+//
+//RoomSegment *room_segments = NULL;
+//
+//void gen_rooms() {
+//    int x=0;
+//    arrpush(room_segments, RoomSegment{
+//            .pos = {.x=x, .y=0, .z=0},
+//            .size = {.x=5, .y=5},
+//            .tile = 'W',
+//    });
+//    x+=5;
+//    arrpush(room_segments, RoomSegment{
+//            .pos = {.x=x, .y=0, .z=0},
+//            .size = {.x=10, .y=10},
+//            .tile = 'x'
+//    });
+//    x+=10;
+//    arrpush(room_segments, RoomSegment{
+//            .pos = {.x=x, .y=0, .z=0},
+//            .size = {.x=5, .y=5},
+//    });
+//    x+=5;
+//}
+//
+//inline char map_i(size_t x, size_t y, size_t z) {
+//    if (room_segments == NULL) {
+//        gen_rooms();
+//    }
+//
+//    // Fuck you just search for now.
+//    for (int i=0; i<arrlen(room_segments); i++) {
+//        RoomSegment room = room_segments[i];
+//        if (z == room.pos.z &&
+//            x >= room.pos.x && x < room.pos.x + room.size.x &&
+//            y >= room.pos.y && y < room.pos.y + room.size.y) {
+//            return room.tile;
+//        }
+//    }
+//
+//    return ' ';
+//}
+//
+//const size_t TILE_MAP_WIDTH = 20;
+//const size_t TILE_MAP_DEPTH = 10;
+//const size_t TILE_MAP_HEIGHT = 2;
+
+
+//const size_t TILE_MAP_WIDTH = 30;
+//const size_t TILE_MAP_DEPTH = 30;
+//const size_t TILE_MAP_HEIGHT = 2;
+//
+//inline char map_i(size_t x, size_t y, size_t z) {
+//    if (z == 0) {
+//        return 'x';
+//    }
+//
+//    if (z == 1) {
+//        if (x == 0 || x == TILE_MAP_WIDTH - 1 || y == 0 || y == TILE_MAP_DEPTH - 1) {
+//            return 'W';
+//        }
+//        if (x == 1 || x == TILE_MAP_WIDTH - 2 || y == 1 || y == TILE_MAP_DEPTH - 2) {
+//            return ' ';
+//        }
+//
+//        float diff = abs(sin(x * 0.5 * M_PI) - y);
+//        if ((diff < 8 || diff > 12) && y > 5 && y < 15) {
+//            return 'W';
+//        } else {
+//            return ' ';
+//        }
+//    }
+//    return ' ';
+//}
 
 #endif
 
@@ -291,8 +357,6 @@ const float BADGUY_ACCELERATION = 15.0;
 const float FRICTION = 4.0;
 
 // Simulation state
-bool editing = false; // Is this gamestate or is this edit state?
-
 double sim_time = 0.0;
 Entity *entities = NULL;
 size_t player = 0;
@@ -304,10 +368,10 @@ void game_setup() {
             .kind = PLAYER,
             .pos = v3(3.0, 3.0, 0.0),
     });
-    arrpush(entities, (Entity){
-            .kind = BADGUY,
-            .pos = v3(3.0, 6.0, 0.0),
-    });
+//    arrpush(entities, (Entity){
+//            .kind = BADGUY,
+//            .pos = v3(3.0, 6.0, 0.0),
+//    });
     health = 10;
 }
 
@@ -316,9 +380,6 @@ Collision *collisions = NULL;
 
 void sim_tick() {
     arrclear(collisions);
-
-    if (editing || dead) { return; }
-
 
     f3 player_accel = {};
     if (input.w.down) { player_accel += f3_y; }
@@ -373,11 +434,10 @@ void sim_tick() {
             f2 hit_plane = f2_zero;
             Collision collision = {};
 
-            size_t tile_z = entity.pos.z + 1;
-            for (int y=0; y<TILE_MAP_DEPTH; y++) {
-                for (int x=0; x<TILE_MAP_WIDTH; x++) {
-                    char tile = map_i(x, y, tile_z);
-                    if (tile == ' ') { continue; }
+            for (int y=MAX(entity.pos.y-1, 0); y<MIN(entity.pos.y+1,TILE_MAP_DEPTH); y++) {
+                for (int x=MAX(entity.pos.x-1, 0); x<MIN(entity.pos.x+1,TILE_MAP_WIDTH); x++) {
+                    char tile = map_i(x, y);
+                    if (tile == 'x') { continue; }
                     Aabb tile_geometry = (Aabb){
                             .center = v2((float)x, (float)y),
                             .extent = v2(0.5, 0.5),
@@ -390,7 +450,7 @@ void sim_tick() {
                                 .entity = (size_t)entity_i,
                                 .kind = COLLIDE_TILE,
                                 // @TODO: Maybe make a u3 vector for this.
-                                .hit_tile = v3((float)x,(float)y,(float)tile_z),
+                                .hit_tile = v3((float)x,(float)y,(float)0),
                                 .hit_plane = hit_plane,
                         };
                     }
@@ -503,6 +563,8 @@ enum RenderColor {
     COLOR_WHITE,
     COLOR_GREEN,
     COLOR_BLUE,
+    COLOR_BROWN,
+    COLOR_DARK_BROWN,
     COLOR_RED,
 };
 
@@ -520,48 +582,70 @@ RenderCube *render_cubes = NULL;
 double last_update_time = 0.0;
 double dt_remaining = 0.0;
 
+bool editing = false;
+
 void game_update_and_render() {
     // Update with fixed timestep simulation.
-    double dt = dt_remaining + MIN(1.0, t - last_update_time);
-    while (dt > SIM_DT) {
-        dt -= SIM_DT;
-        sim_tick();
-        frame_ticks++;
+    if (!editing && !dead) {
+        double dt = dt_remaining + MIN(1.0, t - last_update_time);
+        while (dt > SIM_DT) {
+            dt -= SIM_DT;
+            sim_tick();
+            frame_ticks++;
+        }
+        dt_remaining = dt;
     }
-    dt_remaining = dt;
     last_update_time = t;
 
 
-    // TODO: Only render tiles on camera.
-    for (int z=0; z<TILE_MAP_HEIGHT; z++) {
-        for (int y=0; y<TILE_MAP_DEPTH; y++) {
-            for (int x = 0; x < TILE_MAP_WIDTH; x++) {
-                char tile = map_i(x, y, z);
-                if (tile == ' ') {
-                    continue;
-                }
+    int camera_min_x = entities[player].pos.x - 12;
+    int camera_max_x = entities[player].pos.x + 12;
+    int camera_min_y = entities[player].pos.y - 8;
+    int camera_max_y = entities[player].pos.y + 8;
 
-                RenderColor color;
-                switch(tile) {
-                    case 'x': {
-                        color = COLOR_WHITE;
-                    } break;
-                    case 'W': {
-                        color = COLOR_BLUE;
-                    } break;
-                    default: {
-                        color = COLOR_DEBUG_PINK;
-                    } break;
-                }
+    int z = 0;
+    for (int y=MAX(camera_min_y, 0); y<MIN(camera_max_y, TILE_MAP_DEPTH); y++) {
+        for (int x = MAX(camera_min_x, 0); x < MIN(camera_max_x, TILE_MAP_WIDTH); x++) {
+            char tile = map_i(x, y);
+            if (tile == ' ') {
+                continue;
+            }
 
+            float height = 0.0;
+
+            RenderColor color;
+            switch(tile) {
+                case 'x': {
+                    color = COLOR_WHITE;
+                } break;
+                case 'W': {
+                    height = 1.0;
+                    color = COLOR_BROWN;
+                } break;
+                default: {
+                    color = COLOR_DEBUG_PINK;
+                } break;
+            }
+
+            // Maybe this is like a distinction between the tile and the object placed on it? I dunno yet.
+            arrpush(render_cubes, (RenderCube){
+                    .center = v3((float)x, (float)y, -0.5),
+                    .extent = v3(0.5, 0.5, 0.5),
+                    .color = color
+            });
+
+            if (height > 0.0) {
                 arrpush(render_cubes, (RenderCube){
-                        .center = v3((float)x, (float)y, (float)z-0.5),
-                        .extent = v3(0.5, 0.5, 0.5),
+                        .center = v3((float)x, (float)y, height*0.5),
+                        .extent = v3(0.5, 0.5, height*0.5),
                         .color = color
                 });
             }
+
+
         }
     }
+
 
     // Render
     // TODO: Interpolate positions with dt_remaining.
@@ -657,6 +741,12 @@ void platform_draw() {
             } break;
             case COLOR_BLUE: {
                 color = BLUE;
+            } break;
+            case COLOR_BROWN: {
+                color = BROWN;
+            } break;
+            case COLOR_DARK_BROWN: {
+                color = DARKBROWN;
             } break;
             case COLOR_RED: {
                 color = RED;
