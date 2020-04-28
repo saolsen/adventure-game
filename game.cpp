@@ -37,189 +37,43 @@ void reset_debug() {
 
 #include "tilemap.h"
 
+enum TileKind {
+    TILE_NONE,
+    TILE_GRASS,
+    TILE_DIRT,
+    TILE_ROAD,
+    TILE_BUSH,
+    TILE_WALL,
+    TILE_ROCK,
+    TILE_SHALLOW_WATER,
+    TILE_DEEP_WATER,
+    NUM_TILE_KINDS,
+};
+
+const char tile_chars[NUM_TILE_KINDS] = {
+        [TILE_NONE] = ' ',
+        [TILE_GRASS] = 'g',
+        [TILE_DIRT] = 'x',
+        [TILE_ROAD] = 'r',
+        [TILE_BUSH] = 'B',
+        [TILE_WALL] = 'W',
+        [TILE_ROCK] = 'R',
+        [TILE_SHALLOW_WATER] = 'o',
+        [TILE_DEEP_WATER] = 'O',
+};
+
+TileKind tile_from_char(char c) {
+    for (int i=0; i<NUM_TILE_KINDS; i++) {
+        if (tile_chars[i] == c) {
+            return (TileKind)i;
+        }
+    }
+    return TILE_NONE;
+}
+
 inline char map_i(size_t x, size_t y) {
     return TILE_MAP[((TILE_MAP_DEPTH - 1 - y) * TILE_MAP_WIDTH) + x];
 }
-
-// Map generation
-#if 0
-const size_t TILE_MAP_WIDTH = ;
-const size_t TILE_MAP_DEPTH = 18;
-const size_t TILE_MAP_HEIGHT = 4;
-
-const char TILE_MAP[TILE_MAP_HEIGHT][TILE_MAP_DEPTH * TILE_MAP_WIDTH] = {
-        {
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-                'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',
-        },
-        {
-                'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W', 'W', 'W', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W', 'W', 'W', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W',
-        },
-        {
-                'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', 'W', 'W', 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W', ' ', ' ', 'W',
-                'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W',
-        },
-        {
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', 'W', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'W', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-        },
-};
-
-inline char map_i(size_t x, size_t y, size_t z) {
-    return TILE_MAP[z][((TILE_MAP_DEPTH - 1 - y) * TILE_MAP_WIDTH) + x];
-}
-
-// Lets try something like this to start. RoomSegments are rectangles. A room could have more but this is more
-// about the geometry I guess?
-
-// I should probably think more about what I would like to get as the result than what the algorithm should be.
-// I wanna put together a simple zelda scene. A shop you can go in, a village maybe, some terrain and trees or whatever.
-// This might be easier to just do laid out in csv or whatever first.
-//struct RoomSegment {
-//    i3 pos;
-//    i2 size;
-//    char tile;
-//};
-//
-//RoomSegment *room_segments = NULL;
-//
-//void gen_rooms() {
-//    int x=0;
-//    arrpush(room_segments, RoomSegment{
-//            .pos = {.x=x, .y=0, .z=0},
-//            .size = {.x=5, .y=5},
-//            .tile = 'W',
-//    });
-//    x+=5;
-//    arrpush(room_segments, RoomSegment{
-//            .pos = {.x=x, .y=0, .z=0},
-//            .size = {.x=10, .y=10},
-//            .tile = 'x'
-//    });
-//    x+=10;
-//    arrpush(room_segments, RoomSegment{
-//            .pos = {.x=x, .y=0, .z=0},
-//            .size = {.x=5, .y=5},
-//    });
-//    x+=5;
-//}
-//
-//inline char map_i(size_t x, size_t y, size_t z) {
-//    if (room_segments == NULL) {
-//        gen_rooms();
-//    }
-//
-//    // Fuck you just search for now.
-//    for (int i=0; i<arrlen(room_segments); i++) {
-//        RoomSegment room = room_segments[i];
-//        if (z == room.pos.z &&
-//            x >= room.pos.x && x < room.pos.x + room.size.x &&
-//            y >= room.pos.y && y < room.pos.y + room.size.y) {
-//            return room.tile;
-//        }
-//    }
-//
-//    return ' ';
-//}
-//
-//const size_t TILE_MAP_WIDTH = 20;
-//const size_t TILE_MAP_DEPTH = 10;
-//const size_t TILE_MAP_HEIGHT = 2;
-
-
-//const size_t TILE_MAP_WIDTH = 30;
-//const size_t TILE_MAP_DEPTH = 30;
-//const size_t TILE_MAP_HEIGHT = 2;
-//
-//inline char map_i(size_t x, size_t y, size_t z) {
-//    if (z == 0) {
-//        return 'x';
-//    }
-//
-//    if (z == 1) {
-//        if (x == 0 || x == TILE_MAP_WIDTH - 1 || y == 0 || y == TILE_MAP_DEPTH - 1) {
-//            return 'W';
-//        }
-//        if (x == 1 || x == TILE_MAP_WIDTH - 2 || y == 1 || y == TILE_MAP_DEPTH - 2) {
-//            return ' ';
-//        }
-//
-//        float diff = abs(sin(x * 0.5 * M_PI) - y);
-//        if ((diff < 8 || diff > 12) && y > 5 && y < 15) {
-//            return 'W';
-//        } else {
-//            return ' ';
-//        }
-//    }
-//    return ' ';
-//}
-
-#endif
 
 // Platform layer types
 struct DigitalButton {
@@ -348,6 +202,20 @@ struct Collision {
     f2 hit_plane; // @TODO: Something better than this.
 };
 
+const bool tile_collides[NUM_TILE_KINDS] = {
+        [TILE_NONE] = false,
+        [TILE_GRASS] = false,
+        [TILE_DIRT] = false,
+        [TILE_ROAD] = false,
+        [TILE_BUSH] = true,
+        [TILE_WALL] = true,
+        [TILE_ROCK] = true,
+        [TILE_SHALLOW_WATER] = false,
+        [TILE_DEEP_WATER] = true,
+};
+
+// @TODO: tile_geometries or something.
+
 // Simulation constants
 const float SIM_DT = 1.0 / 60.0;
 const float PLAYER_MAX_SPEED = 30.0;
@@ -366,7 +234,7 @@ bool dead = false;
 void game_setup() {
     arrpush(entities, (Entity){
             .kind = PLAYER,
-            .pos = v3(3.0, 3.0, 0.0),
+            .pos = v3(48.0, 53.0, 0.0),
     });
 //    arrpush(entities, (Entity){
 //            .kind = BADGUY,
@@ -436,8 +304,10 @@ void sim_tick() {
 
             for (int y=MAX(entity.pos.y-1, 0); y<MIN(entity.pos.y+1,TILE_MAP_DEPTH); y++) {
                 for (int x=MAX(entity.pos.x-1, 0); x<MIN(entity.pos.x+1,TILE_MAP_WIDTH); x++) {
-                    char tile = map_i(x, y);
-                    if (tile == 'x') { continue; }
+                    char tile_char = map_i(x, y);
+                    TileKind tile_kind = tile_from_char(tile_char);
+
+                    if (!tile_collides[tile_kind]) { continue; }
                     Aabb tile_geometry = (Aabb){
                             .center = v2((float)x, (float)y),
                             .extent = v2(0.5, 0.5),
@@ -559,19 +429,48 @@ struct RenderCamera {
 
 enum RenderColor {
     COLOR_DEBUG_PINK,
-    COLOR_BLACK,
     COLOR_WHITE,
     COLOR_GREEN,
-    COLOR_BLUE,
     COLOR_BROWN,
     COLOR_DARK_BROWN,
+    COLOR_DARK_GREEN,
+    COLOR_PURPLE,
+    COLOR_DARK_GRAY,
+    COLOR_LIGHT_BLUE,
+    COLOR_BLUE,
+    COLOR_DARK_BLUE,
     COLOR_RED,
+    NUM_RENDER_COLORS,
 };
 
 struct RenderCube {
     f3 center;
     f3 extent;
     RenderColor color;
+};
+
+const RenderColor tile_render_color[NUM_TILE_KINDS] = {
+        [TILE_NONE] = COLOR_WHITE,
+        [TILE_GRASS] = COLOR_GREEN,
+        [TILE_DIRT] = COLOR_BROWN,
+        [TILE_ROAD] = COLOR_DARK_BROWN,
+        [TILE_BUSH] = COLOR_DARK_GREEN,
+        [TILE_WALL] = COLOR_PURPLE,
+        [TILE_ROCK] = COLOR_DARK_GRAY,
+        [TILE_SHALLOW_WATER] = COLOR_LIGHT_BLUE,
+        [TILE_DEEP_WATER] = COLOR_DARK_BLUE,
+};
+
+const float tile_height[NUM_TILE_KINDS] = {
+        [TILE_NONE] = 0.0,
+        [TILE_GRASS] = 0.0,
+        [TILE_DIRT] = 0.0,
+        [TILE_ROAD] = 0.0,
+        [TILE_BUSH] = 1.0,
+        [TILE_WALL] = 2.0,
+        [TILE_ROCK] = 1.0,
+        [TILE_SHALLOW_WATER] = 0.0,
+        [TILE_DEEP_WATER] = 0.0,
 };
 
 // Renderer state.
@@ -606,26 +505,15 @@ void game_update_and_render() {
     int z = 0;
     for (int y=MAX(camera_min_y, 0); y<MIN(camera_max_y, TILE_MAP_DEPTH); y++) {
         for (int x = MAX(camera_min_x, 0); x < MIN(camera_max_x, TILE_MAP_WIDTH); x++) {
-            char tile = map_i(x, y);
-            if (tile == ' ') {
+            char tile_char = map_i(x, y);
+            TileKind tile_kind = tile_from_char(tile_char);
+
+            if (tile_kind == TILE_NONE) {
                 continue;
             }
 
-            float height = 0.0;
-
-            RenderColor color;
-            switch(tile) {
-                case 'x': {
-                    color = COLOR_WHITE;
-                } break;
-                case 'W': {
-                    height = 1.0;
-                    color = COLOR_BROWN;
-                } break;
-                default: {
-                    color = COLOR_DEBUG_PINK;
-                } break;
-            }
+            RenderColor color = tile_render_color[tile_kind];
+            float height = tile_height[tile_kind];
 
             // Maybe this is like a distinction between the tile and the object placed on it? I dunno yet.
             arrpush(render_cubes, (RenderCube){
@@ -641,11 +529,8 @@ void game_update_and_render() {
                         .color = color
                 });
             }
-
-
         }
     }
-
 
     // Render
     // TODO: Interpolate positions with dt_remaining.
@@ -702,6 +587,22 @@ void platform_update() {
     arrclear(render_cubes);
 }
 
+Color render_color[NUM_RENDER_COLORS] = {
+        [COLOR_DEBUG_PINK] = PINK,
+        [COLOR_WHITE] = RAYWHITE,
+        [COLOR_GREEN] = GREEN,
+        [COLOR_BROWN] = BROWN,
+        [COLOR_DARK_BROWN] = DARKBROWN,
+        [COLOR_DARK_GREEN] = DARKGREEN,
+        [COLOR_PURPLE] = PURPLE,
+        [COLOR_DARK_GRAY] = DARKGRAY,
+        [COLOR_LIGHT_BLUE] = BLUE,
+        [COLOR_BLUE] = BLUE,
+        [COLOR_DARK_BLUE] = DARKBLUE,
+        [COLOR_RED] = RED,
+};
+
+
 void platform_draw() {
     Camera3D raylib_camera = (Camera3D){
             .type = CAMERA_PERSPECTIVE,
@@ -725,36 +626,7 @@ void platform_draw() {
         Vector3 wire_size = rl(render_cubes[i].extent * 2.01);
         Vector3 pos = rl(render_cubes[i].center);
 
-        Color color;
-        switch(render_cubes[i].color) {
-            case COLOR_DEBUG_PINK: {
-                color = PINK;
-            } break;
-            case COLOR_WHITE: {
-                color = RAYWHITE;
-            } break;
-            case COLOR_BLACK: {
-                color = BLACK;
-            } break;
-            case COLOR_GREEN: {
-                color = GREEN;
-            } break;
-            case COLOR_BLUE: {
-                color = BLUE;
-            } break;
-            case COLOR_BROWN: {
-                color = BROWN;
-            } break;
-            case COLOR_DARK_BROWN: {
-                color = DARKBROWN;
-            } break;
-            case COLOR_RED: {
-                color = RED;
-            } break;
-            default: {
-                color = PINK;
-            } break;
-        }
+        Color color = render_color[render_cubes[i].color];
         DrawCubeV(pos, size, color);
 
         if (editing && CheckCollisionRayBox(ray,
