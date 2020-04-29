@@ -4,14 +4,6 @@ u8 *alloc_memory(usize num_pages) {
     return (u8 *)calloc(1, num_pages * page_size);
 }
 
-uint64_t hash(const char *str, usize len) {
-    u64 h = 5381;
-    for (int i = 0; i < len; i++) {
-        h = ((h << 5u) + h) + str[i];
-    }
-    return h;
-}
-
 Arena dbg_a = {0};
 
 u8 *arena_push(Arena *arena, usize size) {

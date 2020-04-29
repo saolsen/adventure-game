@@ -1,14 +1,12 @@
 cmake_minimum_required(VERSION 3.15)
 project(adventure-game)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_C_STANDARD 99)
 
 include_directories(../3rdparty)
 link_directories(../3rdparty/osx)
 
-add_executable(adventure-game
-        ../game.cpp
-        )
+add_executable(adventure-game ../game.c)
 
 target_link_libraries(adventure-game
         "-framework CoreVideo"

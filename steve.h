@@ -92,76 +92,12 @@ const char *intern_range(char*** table, Arena *arena, const char *start, const c
 const char *intern_str(char*** table, Arena* arena, const char *str);
 const char *intern_size(char*** table, Arena *arena, const char *start, usize size);
 
-uint64_t hash(char *str, usize len);
-
-typedef struct {
-    int x, y;
-} I2;
-
-typedef struct {
-    int x, y, z;
-} I3;
-
-typedef struct {
-    float x, y;
-} F2;
-
-inline F2 f2(float x, float y) { return (F2){.x = x, .y = y}; }
-
-const F2 f2_zero = {.x = 0.0f, .y = 0.0f};
-const F2 f2_one = {.x = 1.0f, .y = 1.0f};
-const F2 f2_x = {.x = 1.0f, .y = 0.0f};
-const F2 f2_y = {.x = 0.0f, .y = 1.0f};
-
-typedef struct {
-    float x, y, z;
-} F3;
-
-inline F3 f3(float x, float y, float z) { return (F3){.x = x, .y = y, .z = z}; }
-
-const F3 f3_zero = {.x = 0.0f, .y = 0.0f, .z = 0.0f};
-const F3 f3_one = {.x = 1.0f, .y = 1.0f, .z = 1.0f};
-const F3 f3_x = {.x = 1.0f, .y = 0.0f, .z = 0.0f};
-const F3 f3_y = {.x = 0.0f, .y = 1.0f, .z = 0.0f};
-const F3 f3_z = {.x = 0.0f, .y = 0.0f, .z = 1.0f};
-
-inline F3 f2_xyz(F2 v) { return (F3){.x = v.x, .y = v.y, .z = 0.0}; }
-inline F2 f3_xy(F3 v) { return (F2){.x = v.x, .y = v.y}; }
-
-inline F2 f2_add(F2 a, F2 b) { return (F2){.x = a.x + b.x, .y = a.y + b.y}; }
-inline F2 f2_sub(F2 a, F2 b) { return (F2){.x = a.x - b.x, .y = a.y - b.y}; }
-inline F2 f2_mul_f(F2 v, float f) { return (F2){.x = v.x * f, .y = v.y * f}; }
-inline F2 f2_div_f(F2 v, float f) { return (F2){.x = v.x / f, .y = v.y / f}; }
-inline F2 f2_neg(F2 v) { return (F2){.x = -v.x, .y = -v.y}; }
-inline float f2_mag2(F2 v) { return v.x * v.x + v.y * v.y; }
-inline float f2_mag(F2 v) {
-    return sqrtf(v.x * v.x + v.y * v.y);
-}
-inline F2 f2_normalize(F2 v) {
-    float m = f2_mag(v);
-    if (m != 0.0) {
-        return (F2){.x = v.x / m, .y = v.y / m};
-    } else {
-        return v;
+uint64_t hash(const char *str, usize len) {
+    u64 h = 5381;
+    for (int i = 0; i < len; i++) {
+        h = ((h << 5u) + h) + str[i];
     }
-}
-
-inline F3 f3_add(F3 a, F3 b) { return (F3){.x = a.x + b.x, .y = a.y + b.y, .z = a.z + b.z}; }
-inline F3 f3_sub(F3 a, F3 b) { return (F3){.x = a.x - b.x, .y = a.y - b.y, .z = a.z - b.z}; }
-inline F3 f3_mul_f(F3 v, float f) { return (F3){.x = v.x * f, .y = v.y * f, .z = v.z * f}; }
-inline F3 f3_div_f(F3 v, float f) { return (F3){.x = v.x / f, .y = v.y / f, .z = v.z / f}; }
-inline F3 f3_neg(F3 v) { return (F3){.x = -v.x, .y = -v.y, .z = -v.z}; }
-inline float f3_mag2(F3 v) { return v.x * v.x + v.y * v.y + v.z * v.z; }
-inline float f3_mag(F3 v) {
-    return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
-}
-inline F3 f3_normalize(F3 v) {
-    float m = f3_mag(v);
-    if (m != 0.0) {
-        return (F3){.x = v.x / m, .y = v.y / m, .z = v.z / m};
-    } else {
-        return v;
-    }
+    return h;
 }
 
 #endif //CODE_STEVE_H
