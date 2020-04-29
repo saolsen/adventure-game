@@ -1,31 +1,3 @@
-// If I can't use all of this with c++ I think I'd rather just write all the damn vectors by hand
-// and stick to c99. Fuck c++.
-
-// @TODO: Why doesn't inline work?
-
-// I think a much larger map would really help a lot.
-
-// TODO List
-// Port sweep_aabb to the inline spot I set up.
-
-// Start iterating on some real gameplay.
-// Move steve.h stuff into this file too.
-
-// @NOTE: This is c++20+ only
-// Because I use designated initializers (c99) AND operator overloading (c++).
-// It's really just c99 + operator overloading but that's only c++20 for some reason.
-
-// Lets do a large world and a level editor.
-
-// Ok so the level editing stuff sucks, also using tiled suckes and using an external editor sucks.
-// I'm not sure how I wanna design these worlds.
-// I do wanna do precedural stuff eventuially so maybe I just work on that, do the runtime data structure and fill
-// it in with code from the beginning.
-
-// Guess I want some sort of sparse storage thing to get started with.
-
-// The tilemap does work.
-
 // TODO: Just inline whatever you do use. Easier to share the code.
 #include "steve.h"
 #include "steve.c"
@@ -761,7 +733,7 @@ void platform_draw() {
         DrawCircle(x, 10, 5, RED);
         x+= 12;
     }
-
+    
     DrawFPS(10, GetScreenHeight() - 25);
     
     //arrclear(text_buf);
