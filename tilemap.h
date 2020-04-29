@@ -1,8 +1,8 @@
 #ifndef ADVENTURE_GAME_TILEMAP_H
 #define ADVENTURE_GAME_TILEMAP_H
 
-const size_t TILE_MAP_WIDTH = 100;
-const size_t TILE_MAP_DEPTH = 100;
+#define TILE_MAP_WIDTH 100
+#define TILE_MAP_DEPTH 100
 
 const char TILE_MAP[TILE_MAP_DEPTH * TILE_MAP_WIDTH] = {
         'W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W','W',

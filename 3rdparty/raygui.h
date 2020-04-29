@@ -901,7 +901,7 @@ bool GuiWindowBox(Rectangle bounds, const char *title)
     int statusBarHeight = WINDOW_STATUSBAR_HEIGHT + 2*GuiGetStyle(STATUSBAR, BORDER_WIDTH);
     statusBarHeight += (statusBarHeight%2);
 
-    Rectangle statusBar = { bounds.x, bounds.y, bounds.width, static_cast<float>(statusBarHeight) };
+    Rectangle statusBar = { bounds.x, bounds.y, bounds.width, statusBarHeight };
     if (bounds.height < statusBarHeight*2) bounds.height = statusBarHeight*2;
 
     Rectangle closeButtonRec = { statusBar.x + statusBar.width - GuiGetStyle(STATUSBAR, BORDER_WIDTH) - 20,
@@ -1573,7 +1573,7 @@ bool GuiTextBox(Rectangle bounds, char *text, int textSize, bool editMode)
         bounds.x + GuiGetStyle(TEXTBOX, TEXT_PADDING) + GetTextWidth(text) + 2,
         bounds.y + bounds.height/2 - GuiGetStyle(DEFAULT, TEXT_SIZE),
         1,
-        static_cast<float>(GuiGetStyle(DEFAULT, TEXT_SIZE)*2)
+        GuiGetStyle(DEFAULT, TEXT_SIZE)*2
     };
 
     // Update control
@@ -1882,7 +1882,7 @@ bool GuiTextBoxMulti(Rectangle bounds, char *text, int textSize, bool editMode)
     };
 
     // Cursor position, [x, y] values should be updated
-    Rectangle cursor = { 0, 0, 1, static_cast<float>(GuiGetStyle(DEFAULT, TEXT_SIZE) + 2) };
+    Rectangle cursor = { 0, 0, 1, GuiGetStyle(DEFAULT, TEXT_SIZE) + 2 };
 
     int textWidth = 0;
     int currentLine = 0;
