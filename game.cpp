@@ -39,6 +39,7 @@ void reset_debug() {
 
 enum TileKind {
     TILE_NONE,
+    TILE_FLOOR,
     TILE_GRASS,
     TILE_DIRT,
     TILE_ROAD,
@@ -52,6 +53,7 @@ enum TileKind {
 
 const char tile_chars[NUM_TILE_KINDS] = {
         [TILE_NONE] = ' ',
+        [TILE_FLOOR] = 'f',
         [TILE_GRASS] = 'g',
         [TILE_DIRT] = 'x',
         [TILE_ROAD] = 'r',
@@ -204,6 +206,7 @@ struct Collision {
 
 const bool tile_collides[NUM_TILE_KINDS] = {
         [TILE_NONE] = false,
+        [TILE_FLOOR] = false,
         [TILE_GRASS] = false,
         [TILE_DIRT] = false,
         [TILE_ROAD] = false,
@@ -236,10 +239,10 @@ void game_setup() {
             .kind = PLAYER,
             .pos = v3(48.0, 53.0, 0.0),
     });
-//    arrpush(entities, (Entity){
-//            .kind = BADGUY,
-//            .pos = v3(3.0, 6.0, 0.0),
-//    });
+    arrpush(entities, (Entity){
+            .kind = BADGUY,
+            .pos = v3(31.0, 35.0, 0.0),
+    });
     health = 10;
 }
 
@@ -429,6 +432,7 @@ struct RenderCamera {
 
 enum RenderColor {
     COLOR_DEBUG_PINK,
+    COLOR_LIGHT_GRAY,
     COLOR_WHITE,
     COLOR_GREEN,
     COLOR_BROWN,
@@ -451,6 +455,7 @@ struct RenderCube {
 
 const RenderColor tile_render_color[NUM_TILE_KINDS] = {
         [TILE_NONE] = COLOR_WHITE,
+        [TILE_FLOOR] = COLOR_LIGHT_GRAY,
         [TILE_GRASS] = COLOR_GREEN,
         [TILE_DIRT] = COLOR_BROWN,
         [TILE_ROAD] = COLOR_DARK_BROWN,
@@ -463,6 +468,7 @@ const RenderColor tile_render_color[NUM_TILE_KINDS] = {
 
 const float tile_height[NUM_TILE_KINDS] = {
         [TILE_NONE] = 0.0,
+        [TILE_FLOOR] = 0.0,
         [TILE_GRASS] = 0.0,
         [TILE_DIRT] = 0.0,
         [TILE_ROAD] = 0.0,
@@ -590,6 +596,7 @@ void platform_update() {
 Color render_color[NUM_RENDER_COLORS] = {
         [COLOR_DEBUG_PINK] = PINK,
         [COLOR_WHITE] = RAYWHITE,
+        [COLOR_LIGHT_GRAY] = LIGHTGRAY,
         [COLOR_GREEN] = GREEN,
         [COLOR_BROWN] = BROWN,
         [COLOR_DARK_BROWN] = DARKBROWN,
