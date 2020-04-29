@@ -71,12 +71,12 @@ F2 f2_div_f(F2 v, float f) { return (F2){.x = v.x / f, .y = v.y / f}; }
 F2 f2_neg(F2 v) { return (F2){.x = -v.x, .y = -v.y}; }
 float f2_mag2(F2 v) { return v.x * v.x + v.y * v.y; }
 float f2_mag(F2 v) {
-    return sqrtf(v.x * v.x + v.y * v.y);
+    return sqrtf(f2_mag2(v));
 }
 F2 f2_normalize(F2 v) {
     float m = f2_mag(v);
     if (m != 0.0) {
-        return (F2){.x = v.x / m, .y = v.y / m};
+        return f2_div_f(v, m);
     } else {
         return v;
     }
@@ -89,12 +89,12 @@ F3 f3_div_f(F3 v, float f) { return (F3){.x = v.x / f, .y = v.y / f, .z = v.z / 
 F3 f3_neg(F3 v) { return (F3){.x = -v.x, .y = -v.y, .z = -v.z}; }
 float f3_mag2(F3 v) { return v.x * v.x + v.y * v.y + v.z * v.z; }
 float f3_mag(F3 v) {
-    return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+    return sqrtf(f3_mag2(v));
 }
 F3 f3_normalize(F3 v) {
     float m = f3_mag(v);
     if (m != 0.0) {
-        return (F3){.x = v.x / m, .y = v.y / m, .z = v.z / m};
+        return f3_div_f(v, m);
     } else {
         return v;
     }
@@ -297,12 +297,12 @@ const bool tile_collides[NUM_TILE_KINDS] = {
 // @TODO: tile_geometries or something.
 
 // Simulation constants
-const float SIM_DT = 1.0 / 60.0;
-const float PLAYER_MAX_SPEED = 30.0;
-const float PLAYER_ACCELERATION = 20.0;
-const float BADGUY_MAX_SPEED = 25.0;
-const float BADGUY_ACCELERATION = 15.0;
-const float FRICTION = 4.0;
+const float SIM_DT = 1.0f / 60.0f;
+const float PLAYER_MAX_SPEED = 5.5f;
+const float PLAYER_ACCELERATION = 15.0f;
+const float BADGUY_MAX_SPEED = 5.0f;
+const float BADGUY_ACCELERATION = 10.0f;
+const float FRICTION = 4.0f;
 
 // Simulation state
 double sim_time = 0.0;
@@ -347,10 +347,10 @@ void sim_tick() {
                 max_speed = PLAYER_MAX_SPEED;
             } break;
             case BADGUY: {
-                //entity.target = entities[player].pos;
-                //entity.ddp = f3_normalize(f3_sub(entity.target, entity.pos));
-                //entity.ddp = f3_mul_f(entity.ddp, BADGUY_ACCELERATION);
-                //max_speed = BADGUY_MAX_SPEED;
+                entity.target = entities[player].pos;
+                entity.ddp = f3_normalize(f3_sub(entity.target, entity.pos));
+                entity.ddp = f3_mul_f(entity.ddp, BADGUY_ACCELERATION);
+                max_speed = BADGUY_MAX_SPEED;
             } break;
         }
 
@@ -361,7 +361,6 @@ void sim_tick() {
         if (f3_mag2(new_dp) > max_speed * max_speed) {
             new_dp = f3_mul_f(f3_normalize(new_dp), max_speed);
         }
-
         entity.dp = new_dp;
 
         F3 new_pos = f3_mul_f(entity.ddp, 0.5 * (SIM_DT * SIM_DT));
@@ -446,23 +445,21 @@ void sim_tick() {
                 }
 
                 arrpush(collisions, collision);
+
+                new_pos = f3_mul_f(entity.ddp, 0.5 * (dt_rem * dt_rem));
+                new_pos = f3_add(new_pos, f3_mul_f(entity.dp, dt_rem));
+                new_pos = f3_add(new_pos, entity.pos);
+
+                ray = f3_xy(f3_sub(new_pos, entity.pos));
+                if (f2_mag2(ray) > 0.0) {
+                    float m = f2_mag(ray) / dt_rem;
+                    ray = f2_mul_f(f2_normalize(ray), m);
+                }
             } else {
                 entity.pos = f3_add(entity.pos, f3_mul_f(f2_xyz(ray), dt_rem));
                 dt_rem -= dt_rem;
                 assert(dt_rem <= 0.0);
             }
-
-            // @DUPLICATE
-            new_pos = f3_mul_f(entity.ddp, 0.5 * (SIM_DT * SIM_DT));
-            new_pos = f3_add(new_pos, f3_mul_f(entity.dp, SIM_DT));
-            new_pos = f3_add(new_pos, entity.pos);
-
-            ray = f3_xy(f3_sub(new_pos, entity.pos));
-            if (f2_mag2(ray) > 0.0) {
-                float m = f2_mag(ray) / SIM_DT;
-                ray = f2_mul_f(f2_normalize(ray), m);
-            }
-            //
 
             F3 moved_to = entity.pos;
             F3 movement_ray = f3_sub(moved_to, moved_from);
@@ -766,11 +763,10 @@ void platform_draw() {
     }
 
     DrawFPS(10, GetScreenHeight() - 25);
-
-    arrclear(text_buf);
-    arrprintf(text_buf, "Ticks this frame: %i", frame_ticks);
-    DrawText(text_buf, 10, 10, 20, PINK);
-
+    
+    //arrclear(text_buf);
+    //arrprintf(text_buf, "Ticks this frame: %i", frame_ticks);
+    //DrawText(text_buf, 5, 20, 24, BLACK);
 
     if (dead) {
         DrawText("YOU ARE DEAD", GetScreenWidth()/2, GetScreenHeight()/2, 50, RED);
