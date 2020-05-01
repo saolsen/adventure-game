@@ -309,7 +309,7 @@ void sim_tick() {
 
     player_accel = f3_normalize(player_accel);
 
-    for (int entity_i=0; entity_i < arrlen(entities); entity_i++) {
+    for (size_t entity_i=0; entity_i < arrlen(entities); entity_i++) {
         Entity entity = entities[entity_i];
         float max_speed = 0.0;
         switch(entity.kind) {
@@ -382,7 +382,7 @@ void sim_tick() {
             }
 
             // Check collisions with other entities.
-            for (int other_i=0; other_i<arrlen(entities); other_i++) {
+            for (size_t other_i=0; other_i<arrlen(entities); other_i++) {
                 if (other_i == entity_i) { continue; }
                 Entity other = entities[other_i];
                 Aabb other_geometry = (Aabb){
@@ -405,7 +405,7 @@ void sim_tick() {
             F3 moved_from = entity.pos;
 
             if (min_hit_t < HUGE_VAL) {
-                entity.pos = f3_add(entity.pos, f3_mul_f(f2_xyz(ray), (float)(min_hit_t - 0.0001)));
+                entity.pos = f3_add(entity.pos, f3_mul_f(f2_xyz(ray), (float)(min_hit_t - 0.001)));
                 dt_rem -= min_hit_t;
                 if (hit_plane.x != 0.0) {
                     entity.dp.x = 0.0;
@@ -443,7 +443,7 @@ void sim_tick() {
         entities[entity_i] = entity;
     }
 
-    for (int i=0; i<arrlen(collisions); i++) {
+    for (size_t i=0; i<arrlen(collisions); i++) {
         Collision collision = collisions[i];
         if ((collision.entity == player || collision.hit_entity == player) && collision.kind == COLLIDE_ENTITY) {
             health -= 1;
@@ -597,7 +597,7 @@ void game_update_and_render() {
     camera.target = entities[player].pos;
     camera.position = f3_add(camera.target, f3(0.0,-5.0,10.0));
 
-    for (int i=0; i<arrlen(entities); i++) {
+    for (size_t i=0; i<arrlen(entities); i++) {
         Entity *entity = entities + i;
         switch(entity->kind) {
             case PLAYER: {
@@ -677,8 +677,6 @@ Color render_color(RenderColor color) {
         return DARKGRAY;
         break;
     case COLOR_LIGHT_BLUE:
-        return BLUE;
-        break;
     case COLOR_BLUE:
         return BLUE;
         break;
@@ -749,7 +747,7 @@ void platform_draw() {
     }
 
     if (editing) {
-        if (GuiButton((Rectangle){100, 100, 100, 100}, "#05#Fuck You")) { printf("fuck you\n"); }
+        if (GuiButton((Rectangle){100, 100, 100, 100}, "#05#This is the Fuck You button")) { printf("fuck you\n"); }
     }
 
     EndDrawing();
